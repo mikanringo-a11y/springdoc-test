@@ -1,0 +1,36 @@
+name: Generate API Docs
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # コードから openapi.yaml を生成
+      - name: Generate OpenAPI Spec
+        run: mvn verify -DskipTests
+
+      # YAMLをHTML(Redoc)に変換
+      - name: Build Redoc HTML
+        run: |
+          mkdir public
+          npx @redocly/cli build-docs target/openapi.yaml -o public/index.html
+
+      # GitHub Pagesへデプロイ
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
